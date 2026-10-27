@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" role="img" aria-labelledby="basira-mark-title basira-mark-description">
+  <title id="basira-mark-title">Basira</title>
+  <desc id="basira-mark-description">An open eye surrounding three rising bars, representing clear business insight.</desc>
+  <path d="M5 32C12 19 21 12 32 12C43 12 52 19 59 32C52 45 43 52 32 52C21 52 12 45 5 32Z" stroke="#087F8C" stroke-width="3.5" stroke-linejoin="round"/>
+  <rect x="18" y="31" width="7" height="10" rx="2" fill="#142D3B"/>
+  <rect x="28.5" y="25" width="7" height="16" rx="2" fill="#087F8C"/>
+  <rect x="39" y="19" width="7" height="22" rx="2" fill="#087F8C"/>
+</svg>

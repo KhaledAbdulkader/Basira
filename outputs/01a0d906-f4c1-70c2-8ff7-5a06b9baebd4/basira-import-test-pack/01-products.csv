@@ -1,0 +1,4 @@
+﻿item_name,type,category,cost_price,selling_price
+Import Test Coffee,PRODUCT,Drinks,5.00,15.00
+Import Test Sandwich,PRODUCT,Food,8.00,20.00
+Import Test Consultation,SERVICE,Services,,100.00

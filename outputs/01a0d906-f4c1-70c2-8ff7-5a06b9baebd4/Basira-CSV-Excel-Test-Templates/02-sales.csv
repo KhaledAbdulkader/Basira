@@ -1,0 +1,7 @@
+﻿date,item_name,quantity,unit_price,unit_cost,total_amount,note
+2026-10-08,Import Test Coffee,2,15.00,5.00,30.00,Sample sale: two coffees
+2026-10-09,Import Test Sandwich,3,20.00,8.00,60.00,Sample sale: three sandwiches
+2026-10-10,Import Test Consultation,1,100.00,,100.00,Sample service: historical cost unknown
+2026-10-11,Import Test Coffee,4,15.00,5.00,60.00,Sample sale: four coffees
+2026-10-12,Import Test Sandwich,2,20.00,8.00,40.00,Sample sale: two sandwiches
+2026-10-13,Import Test Consultation,1,100.00,0.00,100.00,Sample remote service: known zero direct cost

@@ -1,0 +1,65 @@
+BASIRA IMPORT TEST PACK
+
+These are fictional sample records, ready to edit and import.
+Each numbered dataset comes in CSV and Excel (.xlsx) formats with identical data.
+Choose ONE format for each dataset. Importing both can duplicate financial records.
+For a separate CSV-versus-Excel comparison, use a different fresh business for each format.
+
+RECOMMENDED SETUP
+Create/select a fresh test business with currency SAR and timezone Asia/Riyadh.
+If testing only expenses, you can start with 03-expenses.csv or 03-expenses.xlsx.
+Expense categories must already exist with their default classifications:
+Rent, Utilities, Supplies = Operating
+Inventory = Inventory purchase
+Other = Other / unclassified
+If you renamed or removed a category, create it first or edit the file to match.
+
+IMPORT STEPS
+1. Open Imports and select Products & services. Upload 01-products in your chosen format.
+2. Preview the 3 valid rows and confirm the import.
+3. Select Sales and import 02-sales: 6 valid rows, one unknown-cost warning.
+4. Select Expenses and import 03-expenses: 6 valid rows, warnings for Inventory and Other.
+5. Select Customer visits and import 04-customer-visits: 6 valid daily totals.
+6. Select Customer feedback and import 05-feedback: 4 valid comments.
+Review each preview and confirm each import separately.
+To test another format, use another business. Product names and daily visit dates
+already present in a business are invalid on re-import; these files do not update them.
+
+WHAT THE NUMBERS MEAN
+Expense amount = TOTAL MONEY SPENT, not number of items.
+Example: 10 pens at SAR 2 each = amount 20.00.
+Sales quantity = number of units in one transaction.
+Sales unit_price and unit_cost = money per unit.
+Sales total_amount = quantity multiplied by unit_price; if you edit the inputs,
+update total_amount too or leave total_amount blank for Basira to calculate it.
+Blank unit_cost = unknown historical cost. 0 = a known zero cost.
+Customer count = total visits that day, including repeat visits.
+All file amounts use the selected business currency. No conversion is performed.
+
+EXPECTED RESULTS IN AN OTHERWISE EMPTY TEST BUSINESS
+Set Overview to Custom: 2026-10-08 through 2026-10-13, inclusive.
+Products/services: 3
+Sales transactions: 6
+Revenue: SAR 390.00
+Known COGS: SAR 70.00
+Operating expenses: SAR 165.00
+Inventory purchases: SAR 120.00 (excluded from estimated profit)
+Other spending: SAR 7.00 (excluded from estimated profit)
+Total expenses across all categories: SAR 292.00
+Estimated profit: SAR 155.00 = 390.00 - 70.00 - 165.00
+Cost-data coverage: 5 of 6 sales (83.33%); profit can be overstated by the unknown cost.
+Average sale value: SAR 65.00
+Customer visits: 62
+Feedback: 4 awaiting analysis; importing does not run AI analysis.
+This short sample tests imports and dashboard totals, not forecast readiness.
+
+EDITING RULES
+Keep the exact column headings in row 1 and one worksheet per Excel file.
+Use YYYY-MM-DD dates and numbers without currency symbols or thousands separators.
+Save CSV as comma-separated UTF-8. Excel files contain typed dates and numbers.
+Use plain values; do not add formulas, merged cells, dropdown validation or extra sheets.
+Keep all rows within Basira's 1,000-row import limit.
+To reuse these as templates, replace the sample rows with your own records.
+
+Format source: Basira's import definitions and validation rules in this project.
+Sample data: created for this manual test pack on 2026-10-14.

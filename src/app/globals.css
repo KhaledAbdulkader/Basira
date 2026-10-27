@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--primary);
+  --color-sidebar: var(--sidebar);
+  --font-sans: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+
+:root {
+  color-scheme: light;
+  --background: #f7f8fa;
+  --foreground: #142d3b;
+  --card: #ffffff;
+  --primary: #077984;
+  --primary-foreground: #ffffff;
+  --muted: #e9eef0;
+  --muted-foreground: #596b75;
+  --accent: #e7f2f2;
+  --accent-foreground: #056570;
+  --border: #e1e8eb;
+  --sidebar: #ffffff;
+  --chart-revenue: #087f8c;
+  --chart-expense: #b65f15;
+  --chart-profit: #7358b3;
+}
+
+.dark {
+  color-scheme: dark;
+  --background: #101c23;
+  --foreground: #e6eef2;
+  --card: #17262f;
+  --primary: #67d5d6;
+  --primary-foreground: #10252d;
+  --muted: #273b45;
+  --muted-foreground: #a5b7c1;
+  --accent: #193a42;
+  --accent-foreground: #89dedf;
+  --border: #2b3e49;
+  --sidebar: #13212a;
+  --chart-revenue: #67d5d6;
+  --chart-expense: #f0b16e;
+  --chart-profit: #baa6ee;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  body {
+    margin: 0;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  a,
+  button,
+  input,
+  select,
+  textarea {
+    -webkit-tap-highlight-color: transparent;
+  }
+  a:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 4px;
+  }
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+  ::selection {
+    background: var(--accent);
+    color: var(--accent-foreground);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

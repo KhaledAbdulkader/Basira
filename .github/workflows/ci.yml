@@ -1,0 +1,86 @@
+name: Basira checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: basira_ci
+          POSTGRES_PASSWORD: basira_ci_only
+          POSTGRES_DB: basira_dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U basira_ci -d basira_dev"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      CI: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+      # Disposable job-local credentials, never a production service.
+      DATABASE_URL: postgresql://basira_ci:basira_ci_only@localhost:5432/basira_dev
+      TEST_DATABASE_URL: postgresql://basira_ci:basira_ci_only@localhost:5432/basira_test
+      SHADOW_DATABASE_URL: postgresql://basira_ci:basira_ci_only@localhost:5432/basira_shadow
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+      - run: npm run db:validate
+      - name: Create isolated test and shadow databases
+        run: |
+          node --input-type=module <<'NODE'
+          import pg from 'pg';
+          const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
+          try {
+            await client.connect();
+            await client.query('CREATE DATABASE basira_test OWNER basira_ci');
+            await client.query('CREATE DATABASE basira_shadow OWNER basira_ci');
+          } finally {
+            await client.end();
+          }
+          NODE
+      - run: npm run db:check
+      - run: npm run test:db
+      - run: npm run db:deploy
+      - name: Apply test migrations with an isolated direct URL
+        run: npm run db:migrate:test
+        env:
+          # The wrapper must replace this as well as DATABASE_URL.
+          DIRECT_URL: postgresql://unused:unused@invalid.example/never_connect
+      - run: npm run test:database
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - name: Retain failed browser checks
+        if: failure()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: playwright-results
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

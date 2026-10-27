@@ -1,0 +1,568 @@
+// Authentication, business profiles, core records, and import provenance.
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ReportType {
+  WEEKLY
+  MONTHLY
+  CUSTOM
+}
+
+enum ReportAiStatus {
+  NOT_REQUESTED
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model Report {
+  id              String         @id @default(cuid())
+  businessId      String
+  requestId       String         @db.Uuid
+  requestHash     String         @db.Char(64)
+  reportType      ReportType
+  periodStart     DateTime       @db.Date
+  periodEnd       DateTime       @db.Date
+  businessName    String         @db.VarChar(120)
+  currency        String         @db.Char(3)
+  timezone        String         @db.VarChar(64)
+  summary         String         @db.Text
+  snapshot        Json
+  createdAt       DateTime       @default(now()) @db.Timestamptz(3)
+  aiStatus        ReportAiStatus @default(NOT_REQUESTED)
+  aiSummary       String?        @db.VarChar(1800)
+  aiError         String?        @db.VarChar(32)
+  aiProvider      String?        @db.VarChar(32)
+  aiModel         String?        @db.VarChar(120)
+  aiPromptVersion String?        @db.VarChar(40)
+  aiAttempts      Int            @default(0)
+  aiLeaseToken    String?        @db.Uuid
+  aiLeaseUntil    DateTime?      @db.Timestamptz(3)
+  aiCompletedAt   DateTime?      @db.Timestamptz(3)
+  business        Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, requestId])
+  @@index([businessId, createdAt, id])
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+model User {
+  id            String             @id @default(cuid())
+  name          String?
+  email         String             @unique
+  emailVerified DateTime?          @db.Timestamptz(3)
+  image         String?
+  passwordHash  String?
+  role          UserRole           @default(USER)
+  status        UserStatus         @default(ACTIVE)
+  statusVersion Int                @default(1)
+  createdAt     DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime           @updatedAt @db.Timestamptz(3)
+  accounts      Account[]
+  sessions      Session[]
+  businesses    Business[]
+  conversations ChatConversation[]
+
+  @@index([createdAt, id])
+}
+
+enum BusinessType {
+  RESTAURANT
+  CAFE
+  RETAIL
+  E_COMMERCE
+  SERVICE_PROVIDER
+  STARTUP
+  PROFESSIONAL_SERVICES
+  OTHER
+}
+
+model Business {
+  id                        String             @id @default(cuid())
+  ownerId                   String
+  name                      String             @db.VarChar(120)
+  businessType              BusinessType
+  otherBusinessType         String?            @db.VarChar(120)
+  location                  String?            @db.VarChar(180)
+  currency                  String             @db.Char(3)
+  timezone                  String             @db.VarChar(64)
+  financialSettingsLockedAt DateTime?          @db.Timestamptz(3)
+  feedbackAnalysisNextAt    DateTime?          @db.Timestamptz(3)
+  assistantNextAt           DateTime?          @db.Timestamptz(3)
+  reportSummaryNextAt       DateTime?          @db.Timestamptz(3)
+  version                   Int                @default(1)
+  createdAt                 DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt                 DateTime           @updatedAt @db.Timestamptz(3)
+  owner                     User               @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  products                  ProductService[]
+  expenseCategories         ExpenseCategory[]
+  feedback                  CustomerFeedback[]
+  sales                     SalesRecord[]
+  expenses                  ExpenseRecord[]
+  customerMetrics           CustomerMetric[]
+  imports                   DataImport[]
+  forecasts                 ForecastRun[]
+  conversations             ChatConversation[]
+  alertRules                AlertRule[]
+  alerts                    Alert[]
+  reports                   Report[]
+
+  @@unique([id, ownerId])
+  @@index([ownerId, createdAt, id])
+  @@index([createdAt, id])
+}
+
+enum ProductType {
+  PRODUCT
+  SERVICE
+}
+
+enum ExpenseClassification {
+  OPERATING
+  INVENTORY_PURCHASE
+  OTHER
+}
+
+enum RecordSource {
+  MANUAL
+  IMPORT
+}
+
+enum Sentiment {
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+  UNKNOWN
+}
+
+enum AnalysisStatus {
+  PENDING
+  ANALYZED
+  FAILED
+}
+
+model ProductService {
+  id           String        @id @default(cuid())
+  businessId   String
+  name         String        @db.VarChar(120)
+  type         ProductType
+  category     String?       @db.VarChar(80)
+  costPrice    Decimal?      @db.Decimal(19, 4)
+  sellingPrice Decimal       @db.Decimal(19, 4)
+  active       Boolean       @default(true)
+  source       RecordSource  @default(MANUAL)
+  dataImportId String?
+  dataImport   DataImport?   @relation(fields: [businessId, dataImportId], references: [businessId, id], onDelete: NoAction, onUpdate: NoAction)
+  version      Int           @default(1)
+  createdAt    DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime      @updatedAt @db.Timestamptz(3)
+  business     Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  sales        SalesRecord[]
+
+  @@unique([businessId, id])
+  @@index([businessId, active, name, id])
+  @@index([businessId, dataImportId])
+}
+
+model ExpenseCategory {
+  id             String                @id @default(cuid())
+  businessId     String
+  name           String                @db.VarChar(80)
+  normalizedName String                @db.VarChar(80)
+  classification ExpenseClassification
+  isDefault      Boolean               @default(false)
+  version        Int                   @default(1)
+  createdAt      DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime              @updatedAt @db.Timestamptz(3)
+  business       Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  expenses       ExpenseRecord[]
+
+  @@unique([businessId, id])
+  @@unique([businessId, normalizedName])
+}
+
+model SalesRecord {
+  id               String          @id @default(cuid())
+  businessId       String
+  productServiceId String?
+  itemName         String?         @db.VarChar(120)
+  saleDate         DateTime        @db.Date
+  quantity         Decimal         @db.Decimal(18, 3)
+  unitPrice        Decimal         @db.Decimal(19, 4)
+  unitCost         Decimal?        @db.Decimal(19, 4)
+  totalAmount      Decimal         @db.Decimal(19, 4)
+  note             String?         @db.VarChar(1000)
+  source           RecordSource    @default(MANUAL)
+  dataImportId     String?
+  dataImport       DataImport?     @relation(fields: [businessId, dataImportId], references: [businessId, id], onDelete: NoAction, onUpdate: NoAction)
+  version          Int             @default(1)
+  createdAt        DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime        @updatedAt @db.Timestamptz(3)
+  business         Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  productService   ProductService? @relation(fields: [businessId, productServiceId], references: [businessId, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([businessId, saleDate, id])
+  @@index([businessId, productServiceId])
+  @@index([businessId, dataImportId])
+}
+
+model ExpenseRecord {
+  id             String                @id @default(cuid())
+  businessId     String
+  categoryId     String
+  classification ExpenseClassification
+  expenseDate    DateTime              @db.Date
+  amount         Decimal               @db.Decimal(19, 4)
+  description    String?               @db.VarChar(1000)
+  source         RecordSource          @default(MANUAL)
+  dataImportId   String?
+  dataImport     DataImport?           @relation(fields: [businessId, dataImportId], references: [businessId, id], onDelete: NoAction, onUpdate: NoAction)
+  version        Int                   @default(1)
+  createdAt      DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime              @updatedAt @db.Timestamptz(3)
+  business       Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  category       ExpenseCategory       @relation(fields: [businessId, categoryId], references: [businessId, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([businessId, expenseDate, id])
+  @@index([businessId, categoryId])
+  @@index([businessId, dataImportId])
+}
+
+model CustomerMetric {
+  id            String       @id @default(cuid())
+  businessId    String
+  metricDate    DateTime     @db.Date
+  customerCount Int
+  source        RecordSource @default(MANUAL)
+  dataImportId  String?
+  dataImport    DataImport?  @relation(fields: [businessId, dataImportId], references: [businessId, id], onDelete: NoAction, onUpdate: NoAction)
+  version       Int          @default(1)
+  createdAt     DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime     @updatedAt @db.Timestamptz(3)
+  business      Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, metricDate])
+  @@index([businessId, dataImportId])
+}
+
+model CustomerFeedback {
+  id                    String         @id @default(cuid())
+  businessId            String
+  feedbackDate          DateTime       @db.Date
+  feedbackText          String         @db.VarChar(2000)
+  sentiment             Sentiment      @default(UNKNOWN)
+  topic                 String?        @db.VarChar(120)
+  aiSummary             String?        @db.Text
+  confidence            Decimal?       @db.Decimal(5, 4)
+  analysisStatus        AnalysisStatus @default(PENDING)
+  analysisProvider      String?        @db.VarChar(32)
+  analysisModel         String?        @db.VarChar(120)
+  analysisPromptVersion String?        @db.VarChar(40)
+  analyzedAt            DateTime?      @db.Timestamptz(3)
+  analysisError         String?        @db.VarChar(32)
+  analysisAttemptedAt   DateTime?      @db.Timestamptz(3)
+  analysisAttempts      Int            @default(0)
+  analysisLeaseToken    String?        @db.VarChar(36)
+  analysisLeaseUntil    DateTime?      @db.Timestamptz(3)
+  source                RecordSource   @default(MANUAL)
+  dataImportId          String?
+  dataImport            DataImport?    @relation(fields: [businessId, dataImportId], references: [businessId, id], onDelete: NoAction, onUpdate: NoAction)
+  version               Int            @default(1)
+  createdAt             DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime       @updatedAt @db.Timestamptz(3)
+  business              Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, feedbackDate, id])
+  @@index([businessId, analysisStatus, feedbackDate, id])
+  @@index([businessId, dataImportId])
+}
+
+enum ImportType {
+  PRODUCTS
+  SALES
+  EXPENSES
+  CUSTOMER_METRICS
+  FEEDBACK
+}
+
+enum ImportFileType {
+  CSV
+  XLSX
+}
+
+enum ImportStatus {
+  COMPLETED
+  PARTIAL
+}
+
+model DataImport {
+  id               String             @id @default(cuid())
+  businessId       String
+  fileName         String             @db.VarChar(180)
+  fileType         ImportFileType
+  fileHash         String             @db.Char(64)
+  importType       ImportType
+  status           ImportStatus
+  totalRows        Int
+  importedRows     Int
+  failedRows       Int
+  validationErrors Json
+  createdAt        DateTime           @default(now()) @db.Timestamptz(3)
+  business         Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  products         ProductService[]
+  sales            SalesRecord[]
+  expenses         ExpenseRecord[]
+  customerMetrics  CustomerMetric[]
+  feedback         CustomerFeedback[]
+
+  @@unique([businessId, id])
+  @@unique([businessId, importType, fileHash])
+  @@index([businessId, createdAt, id])
+}
+
+enum ForecastMetric {
+  REVENUE
+  EXPENSE
+}
+
+enum ForecastHorizon {
+  DAYS_7
+  DAYS_30
+  MONTHS_3
+}
+
+enum ForecastGranularity {
+  DAY
+  MONTH
+}
+
+model ForecastRun {
+  id            String              @id @default(cuid())
+  businessId    String
+  metricType    ForecastMetric
+  horizon       ForecastHorizon
+  algorithm     String              @db.VarChar(40)
+  granularity   ForecastGranularity
+  currency      String              @db.Char(3)
+  timezone      String              @db.VarChar(64)
+  historyHash   String              @db.Char(64)
+  trainingStart DateTime            @db.Date
+  trainingEnd   DateTime            @db.Date
+  forecastStart DateTime            @db.Date
+  forecastEnd   DateTime            @db.Date
+  recordedDays  Int
+  gapDays       Int
+  gapsConfirmed Boolean
+  alpha         Decimal             @db.Decimal(3, 2)
+  beta          Decimal             @db.Decimal(3, 2)
+  trainingCount Int
+  backtestCount Int
+  mae           Decimal             @db.Decimal(38, 8)
+  mape          Decimal?            @db.Decimal(38, 8)
+  mapeSamples   Int
+  baselineMae   Decimal             @db.Decimal(38, 8)
+  clampedCount  Int
+  total         Decimal             @db.Decimal(38, 4)
+  history       Json
+  dailyForecast Json
+  backtest      Json
+  createdAt     DateTime            @default(now()) @db.Timestamptz(3)
+  business      Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  points        ForecastPoint[]
+
+  @@unique([businessId, metricType, horizon, algorithm, historyHash])
+  @@index([businessId, createdAt, id])
+}
+
+model ForecastPoint {
+  id             String      @id @default(cuid())
+  forecastRunId  String
+  forecastDate   DateTime    @db.Date
+  periodEnd      DateTime    @db.Date
+  predictedValue Decimal     @db.Decimal(38, 4)
+  lowerBound     Decimal?    @db.Decimal(38, 4)
+  upperBound     Decimal?    @db.Decimal(38, 4)
+  run            ForecastRun @relation(fields: [forecastRunId], references: [id], onDelete: Cascade)
+
+  @@unique([forecastRunId, forecastDate])
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+}
+
+enum ChatMessageStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model ChatConversation {
+  id           String        @id @default(cuid())
+  businessId   String
+  userId       String
+  title        String        @default("New conversation") @db.VarChar(120)
+  periodFrom   DateTime      @db.Date
+  periodTo     DateTime      @db.Date
+  version      Int           @default(1)
+  messageCount Int           @default(0)
+  createdAt    DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime      @updatedAt @db.Timestamptz(3)
+  business     Business      @relation(fields: [businessId, userId], references: [id, ownerId], onDelete: Cascade, onUpdate: NoAction)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages     ChatMessage[]
+
+  @@index([businessId, userId, updatedAt, id])
+}
+
+model ChatMessage {
+  id                String            @id @default(cuid())
+  conversationId    String
+  turnId            String            @db.Uuid
+  sequence          Int
+  role              ChatRole
+  content           String            @db.VarChar(4000)
+  status            ChatMessageStatus
+  inScope           Boolean?
+  referencedMetrics Json?
+  warnings          Json?
+  context           Json?
+  errorCode         String?           @db.VarChar(32)
+  provider          String?           @db.VarChar(32)
+  model             String?           @db.VarChar(120)
+  promptVersion     String?           @db.VarChar(40)
+  attempts          Int               @default(0)
+  leaseToken        String?           @db.VarChar(36)
+  leaseUntil        DateTime?         @db.Timestamptz(3)
+  createdAt         DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime          @updatedAt @db.Timestamptz(3)
+  conversation      ChatConversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, sequence])
+  @@unique([conversationId, turnId, role])
+  @@index([status, leaseUntil])
+}
+
+enum AlertType {
+  SALES_DROP
+  EXPENSE_INCREASE
+  LOW_PROFIT_MARGIN
+  NEGATIVE_FEEDBACK
+  FORECAST_DROP
+}
+
+enum AlertStatus {
+  UNREAD
+  READ
+  DISMISSED
+}
+
+enum AlertSeverity {
+  WARNING
+}
+
+model AlertRule {
+  id         String    @id @default(cuid())
+  businessId String
+  type       AlertType
+  enabled    Boolean   @default(true)
+  threshold  Decimal   @db.Decimal(7, 2)
+  version    Int       @default(1)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @db.Timestamptz(3)
+  business   Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  alerts     Alert[]
+
+  @@unique([businessId, type])
+  @@unique([businessId, id])
+}
+
+model Alert {
+  id          String        @id @default(cuid())
+  businessId  String
+  ruleId      String?
+  type        AlertType
+  title       String        @db.VarChar(120)
+  message     String        @db.VarChar(1000)
+  severity    AlertSeverity @default(WARNING)
+  status      AlertStatus   @default(UNREAD)
+  fingerprint String        @db.Char(64)
+  periodFrom  DateTime      @db.Date
+  periodTo    DateTime      @db.Date
+  evidence    Json
+  version     Int           @default(1)
+  createdAt   DateTime      @default(now()) @db.Timestamptz(3)
+  readAt      DateTime?     @db.Timestamptz(3)
+  dismissedAt DateTime?     @db.Timestamptz(3)
+  business    Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  rule        AlertRule?    @relation(fields: [businessId, ruleId], references: [businessId, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([businessId, fingerprint])
+  @@index([businessId, createdAt, id])
+  @@index([businessId, status, createdAt, id])
+  @@index([businessId, ruleId])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+// Standard adapter contract; Credentials requires JWT sessions in NextAuth v4.
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime @db.Timestamptz(3)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Retained for adapter compatibility; no email-token provider is enabled.
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime @db.Timestamptz(3)
+
+  @@unique([identifier, token])
+}
+
+// Shared across processes. Keys are HMACs, never plaintext email addresses.
+model AuthThrottle {
+  key       String   @id
+  attempts  Int
+  expiresAt DateTime @db.Timestamptz(3)
+
+  @@index([expiresAt])
+}

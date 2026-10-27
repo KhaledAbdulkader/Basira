@@ -1,0 +1,24 @@
+# Credentials and local configuration
+.env*
+!.env.example
+
+# Application outputs (foundation will be added in Phase 1)
+node_modules/
+.next/
+out/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+*.log
+tmp/
+
+# Generated Prisma client and local tooling data
+src/generated/
+.cache/
+.local/
+.vercel/
+
+# Machine-specific files
+.DS_Store
+Thumbs.db

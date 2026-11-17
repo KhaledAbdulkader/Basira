@@ -1,0 +1,24 @@
+# Secrets and local tooling must never be included in a CLI source upload.
+.env*
+!.env.example
+.local/
+.neon
+.vercel/
+.git/
+.codex/
+.agents/
+.cache/
+node_modules/
+.next/
+src/generated/
+*.log
+*.tsbuildinfo
+
+# Generated documents and test artifacts are not application source.
+output/
+outputs/
+out/
+coverage/
+playwright-report/
+test-results/
+tmp/

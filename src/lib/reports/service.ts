@@ -176,9 +176,13 @@ export async function createReport(
       if (
         attempt < 2 &&
         error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2034"
-      )
+        (error.code === "P2034" || error.code === "P2002")
+      ) {
+        // A waiting Repeatable Read transaction can retain a snapshot from
+        // before the winning request committed. Retry the whole transaction
+        // so the UUID/hash check can return that report or reject a mismatch.
         continue;
+      }
       throw error;
     }
   }

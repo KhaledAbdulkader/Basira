@@ -104,11 +104,50 @@ test("concurrent request UUID retries create once and reject changed request fie
       from: f.period.from,
       to: f.period.to,
     };
-  const results = await Promise.all(
+  // Force all three Repeatable Read snapshots to start before any report
+  // commits, rather than relying on the runner's scheduling speed.
+  let markLocked!: () => void;
+  let unlock!: () => void;
+  const locked = new Promise<void>((resolve) => {
+    markLocked = resolve;
+  });
+  const release = new Promise<void>((resolve) => {
+    unlock = resolve;
+  });
+  const holder = db.$transaction(
+    async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "Business" WHERE "id" = ${f.business.id} FOR UPDATE`;
+      markLocked();
+      await release;
+    },
+    { timeout: 10000 },
+  );
+  await locked;
+  const pending = Promise.allSettled(
     Array.from({ length: 3 }, () =>
       createReport(db, owner, f.business.id, request, now),
     ),
   );
+  try {
+    await vi.waitFor(
+      async () => {
+        const [waiting] = await db.$queryRaw<{ count: bigint }[]>`
+        SELECT count(*) FROM pg_stat_activity
+        WHERE datname = current_database() AND wait_event_type = 'Lock'
+          AND query LIKE '%FROM "Business"%FOR UPDATE%'
+      `;
+        expect(Number(waiting?.count)).toBe(3);
+      },
+      { timeout: 5000, interval: 20 },
+    );
+  } finally {
+    unlock();
+    await holder;
+  }
+  const results = (await pending).map((result) => {
+    if (result.status === "rejected") throw result.reason;
+    return result.value;
+  });
   expect(new Set(results.map((r) => r.report.id)).size).toBe(1);
   expect(results.filter((r) => !r.alreadyGenerated)).toHaveLength(1);
   await expect(

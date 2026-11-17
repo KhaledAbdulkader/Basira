@@ -22,3 +22,4 @@ src/generated/
 # Machine-specific files
 .DS_Store
 Thumbs.db
+.neon

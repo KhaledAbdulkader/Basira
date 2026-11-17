@@ -1,6 +1,6 @@
 # Basira deployment guide
 
-Phase 14 prepares the project locally. The user will connect GitHub and hosting later. No repository has been pushed, GitHub-hosted workflow executed, hosted database provisioned, or Vercel deployment created. Local results are in [PHASE_14_DEMO_DEPLOYMENT.md](PHASE_14_DEMO_DEPLOYMENT.md).
+Phase 14 originally prepared the project locally; its historical results are in [PHASE_14_DEMO_DEPLOYMENT.md](PHASE_14_DEMO_DEPLOYMENT.md). As of November 17, 2026, source is published at [KhaledAbdulkader/Basira](https://github.com/KhaledAbdulkader/Basira), and the user's Neon production database is linked with verified pooled and direct connections. The database is still empty. Vercel deployment and remote CI success have not yet been verified. Current database setup details are in [NEON_SETUP.md](NEON_SETUP.md).
 
 The target is one Next.js Node 24 application on Vercel with managed PostgreSQL. Google sign-in and NVIDIA-hosted AI are optional integrations until configured and verified live. GitHub Pages cannot run this server application.
 
@@ -23,7 +23,7 @@ npm run test:e2e
 
 Install Chromium once with `npx playwright install chromium`; Linux CI uses `--with-deps`. Windows can use `$env:PLAYWRIGHT_CHANNEL = 'msedge'` before browser tests. Automated browsers use port 3100 and the guarded `_test` database; manual testing uses port 3000. Optional local demo: `npm run db:seed:demo -- --local`. See [DEMO.md](DEMO.md) and [MANUAL_TESTING.md](MANUAL_TESTING.md).
 
-In GitHub Desktop, add this existing local repository, review its files, create the initial commit and publish privately unless you intend to share the source. No remote is configured yet. Verify that `.env*` except `.env.example`, `.local`, `.vercel`, `node_modules`, `.next`, generated Prisma code and test reports remain ignored. Replace keys previously pasted into chat before production use.
+The existing `origin` is `https://github.com/KhaledAbdulkader/Basira.git`. Review and commit intended source changes, then push them to this repository. Verify that `.env*` except `.env.example`, `.neon`, `.local`, `.vercel`, `node_modules`, `.next`, generated Prisma code and test reports remain ignored. Replace keys previously pasted into chat before production use.
 
 The **Basira checks** workflow runs on pushes and pull requests with read-only repository permissions. It installs locked dependencies, checks formatting/lint/types/unit tests, audits runtime dependencies, validates Prisma, provisions disposable PostgreSQL 18 development/test/shadow databases, runs database suites, builds and tests all browser viewports. Credentials are synthetic job-local values. The test migration step deliberately supplies an unusable `DIRECT_URL` to verify that the wrapper replaces it with the test URL. Failed browser artifacts are retained seven days; the job limit is 30 minutes.
 

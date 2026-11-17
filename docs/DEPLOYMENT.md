@@ -1,6 +1,6 @@
 # Basira deployment guide
 
-Phase 14 originally prepared the project locally; its historical results are in [PHASE_14_DEMO_DEPLOYMENT.md](PHASE_14_DEMO_DEPLOYMENT.md). As of November 17, 2026, source is published at [KhaledAbdulkader/Basira](https://github.com/KhaledAbdulkader/Basira), and the user's Neon production database is linked with verified pooled and direct connections. The database is still empty. Vercel deployment and remote CI success have not yet been verified. Current database setup details are in [NEON_SETUP.md](NEON_SETUP.md).
+Phase 14 originally prepared the project locally; its historical results are in [PHASE_14_DEMO_DEPLOYMENT.md](PHASE_14_DEMO_DEPLOYMENT.md). As of November 17, 2026, source is published at [KhaledAbdulkader/Basira](https://github.com/KhaledAbdulkader/Basira), all ten migrations are applied to the user's Neon production database, and the Vercel Hobby project is configured for `https://basira-two.vercel.app`. See [HOSTING_SETUP.md](HOSTING_SETUP.md) for actual release and smoke-test results, and [NEON_SETUP.md](NEON_SETUP.md) for database and agent setup.
 
 The target is one Next.js Node 24 application on Vercel with managed PostgreSQL. Google sign-in and NVIDIA-hosted AI are optional integrations until configured and verified live. GitHub Pages cannot run this server application.
 
@@ -40,7 +40,7 @@ Require a green **Basira checks / verify** result before release. A local pass d
 
 The CLI uses `DIRECT_URL` when supplied, while runtime always uses `DATABASE_URL`, following [Prisma's connection guidance](https://www.prisma.io/docs/orm/prisma-client/setup-and-configuration/databases-connections). Validation checks matching database names; it cannot establish that same-named databases on different hosts belong to the same provider branch. Verify that in the provider console.
 
-Each warm instance has a pool of at most five connections, with five-second connection, 30-second idle and ten-second statement timeouts. Five is not a deployment-wide connection limit. `@vercel/functions@3.9.11` attaches the external `pg` pool when `VERCEL=1`, allowing Fluid compute to release idle connections before suspension. Prisma disposal closes the pool too. See [Prisma's Vercel guidance](https://www.prisma.io/docs/orm/v7/prisma-client/deployment/serverless/deploy-to-vercel). Check connection capacity under the intended concurrency.
+Each warm instance has a pool of at most five connections, with five-second connection, 30-second idle and ten-second statement timeouts. Five is not a deployment-wide connection limit. `@vercel/functions@3.11.3` attaches the external `pg` pool when `VERCEL=1`, allowing Fluid compute to release idle connections before suspension. Prisma disposal closes the pool too. See [Prisma's Vercel guidance](https://www.prisma.io/docs/orm/v7/prisma-client/deployment/serverless/deploy-to-vercel). Check connection capacity under the intended concurrency.
 
 ## 3. Configure production variables
 
@@ -92,7 +92,7 @@ PDFs use bundled Noto Sans Latin/Arabic fonts. `next.config.ts` traces these fil
 
 ## 6. Google OAuth production setup
 
-Google credentials remain deferred by the user; password authentication works independently.
+Google credentials are configured in Vercel Production. The user added `https://basira-two.vercel.app/api/auth/callback/google` to the existing Google web client while retaining the localhost callback. A real Google-account login must still be checked interactively by the user; generating the correct authorization URL does not verify consent, test-user access or token exchange.
 
 1. In Google Cloud choose the project and configure consent/branding/audience information. Add intended test accounts while the audience is in testing.
 2. Create an **OAuth client ID → Web application**. Configure the canonical HTTPS origin and exact redirect URI `https://YOUR_HOST/api/auth/callback/google`.
